@@ -21,7 +21,7 @@ export default function App() {
   const [trialMap, setTrialMap] = useState("");
 
   const loadTrial = () => {
-    fetch("/trial_data.json")
+    fetch(import.meta.env.BASE_URL + "trial_data.json")
       .then((r) => r.json())
       .then((d) => {
         setTrialMap(d.map);
@@ -34,7 +34,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetch("/master_data.json")
+    fetch(import.meta.env.BASE_URL + "master_data.json")
       .then((r) => r.json())
       .then((d) => {
         setData(d);

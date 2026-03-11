@@ -1,9 +1,9 @@
 import { useRef, useEffect, useCallback } from "react";
 
 const MAP_IMAGE_PATHS = {
-  AmbroseValley: "/minimaps/AmbroseValley_Minimap.png",
-  GrandRift: "/minimaps/GrandRift_Minimap.png",
-  Lockdown: "/minimaps/Lockdown_Minimap.jpg",
+  AmbroseValley: import.meta.env.BASE_URL + "minimaps/AmbroseValley_Minimap.png",
+  GrandRift: import.meta.env.BASE_URL + "minimaps/GrandRift_Minimap.png",
+  Lockdown: import.meta.env.BASE_URL + "minimaps/Lockdown_Minimap.jpg",
 };
 
 function drawCross(ctx, x, y, size, color) {
