@@ -1,0 +1,126 @@
+import { useState, useEffect } from "react";
+import Sidebar from "./components/Sidebar";
+import MapCanvas from "./components/MapCanvas";
+
+export default function App() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [selectedMap, setSelectedMap] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedMatch, setSelectedMatch] = useState("");
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [currentTs, setCurrentTs] = useState(0);
+  const [maxTs, setMaxTs] = useState(0);
+
+  const [trialMode, setTrialMode] = useState(false);
+  const [trialEvents, setTrialEvents] = useState(null);
+  const [trialMap, setTrialMap] = useState("");
+
+  const loadTrial = () => {
+    fetch("/trial_data.json")
+      .then((r) => r.json())
+      .then((d) => {
+        setTrialMap(d.map);
+        setTrialEvents(d.events);
+        setTrialMode(true);
+        setMaxTs(Math.max(...d.events.map((e) => e.ts_ms)));
+        setCurrentTs(0);
+        setIsPlaying(false);
+      });
+  };
+
+  useEffect(() => {
+    fetch("/master_data.json")
+      .then((r) => r.json())
+      .then((d) => {
+        setData(d);
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError(e.message);
+        setLoading(false);
+      });
+  }, []);
+
+  const matchEvents = trialMode
+    ? trialEvents
+    : data && selectedMap && selectedDate && selectedMatch
+      ? data[selectedMap][selectedDate][selectedMatch]
+      : null;
+
+  useEffect(() => {
+    if (matchEvents) {
+      const max = Math.max(...matchEvents.map((e) => e.ts_ms));
+      setMaxTs(max);
+      setCurrentTs(0);
+      setIsPlaying(false);
+    }
+  }, [selectedMatch]);
+
+  return (
+    <div className="flex h-screen w-screen bg-[#0a0a0f] text-white overflow-hidden font-mono">
+      {/* Header bar */}
+      <div className="absolute top-0 left-0 right-0 h-10 bg-[#0d0d14] border-b border-[#1e1e2e] flex items-center px-4 z-10">
+        <span className="text-[#ff3a3a] font-bold tracking-widest text-xs uppercase mr-2">LILA BLACK</span>
+        <span className="text-[#333] mx-2">|</span>
+        <span className="text-[#555] text-xs tracking-widest uppercase">Match Playback Visualizer</span>
+        {loading && (
+          <span className="ml-auto text-[#ff3a3a] text-xs animate-pulse">Loading data...</span>
+        )}
+        {error && (
+          <span className="ml-auto text-red-500 text-xs">Error: {error}</span>
+        )}
+      </div>
+
+      {/* Layout */}
+      <div className="flex w-full pt-10">
+        <Sidebar
+          data={data}
+          selectedMap={selectedMap}
+          setSelectedMap={(v) => { setSelectedMap(v); setSelectedDate(""); setSelectedMatch(""); setTrialMode(false); }}
+          selectedDate={selectedDate}
+          setSelectedDate={(v) => { setSelectedDate(v); setSelectedMatch(""); }}
+          selectedMatch={selectedMatch}
+          setSelectedMatch={setSelectedMatch}
+          isPlaying={isPlaying}
+          setIsPlaying={setIsPlaying}
+          speed={speed}
+          setSpeed={setSpeed}
+          currentTs={currentTs}
+          setCurrentTs={setCurrentTs}
+          maxTs={maxTs}
+          matchEvents={matchEvents}
+          loadTrial={loadTrial}
+          trialMode={trialMode}
+        />
+
+        {/* Canvas area */}
+        <div className="flex-1 flex items-center justify-center bg-[#07070d] relative">
+          {!matchEvents ? (
+            <div className="flex flex-col items-center gap-3 text-[#333]">
+              <div className="w-16 h-16 border border-[#1e1e2e] flex items-center justify-center">
+                <span className="text-2xl">◈</span>
+              </div>
+              <p className="text-xs tracking-widest uppercase">Select a match to begin</p>
+            </div>
+          ) : (
+            <MapCanvas
+              matchEvents={matchEvents}
+              selectedMap={trialMode ? trialMap : selectedMap}
+              isPlaying={isPlaying}
+              setIsPlaying={setIsPlaying}
+              speed={speed}
+              currentTs={currentTs}
+              setCurrentTs={setCurrentTs}
+              maxTs={maxTs}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
