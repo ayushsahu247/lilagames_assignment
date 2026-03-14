@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 const ALL_EVENT_TYPES = ["Position", "BotPosition", "Kill", "BotKill", "Killed", "BotKilled", "KilledByStorm", "Loot"];
 
 // Visual config per event type (matches legend)
@@ -75,6 +77,12 @@ export default function Sidebar({
   const toggleAllMatches = () => {
     setSelectedMatches(allMatchesSelected ? [] : [...allMatchIds]);
   };
+
+  // Match search filter (purely visual — All/Clear still operates on full set)
+  const [matchSearch, setMatchSearch] = useState("");
+  const visibleMatchIds = matchSearch.trim()
+    ? allMatchIds.filter(id => id.toLowerCase().includes(matchSearch.toLowerCase()))
+    : allMatchIds;
 
   const formatTs = (ms) => {
     const s = Math.floor(ms / 1000);
@@ -168,11 +176,37 @@ export default function Sidebar({
               {allMatchesSelected ? "Clear" : "All"}
             </button>
           </div>
-          <div className="flex flex-col border border-[#1e1e2e] bg-[#0d0d14] max-h-44 overflow-y-auto">
-            {allMatchIds.length === 0 && (
-              <p className="text-[10px] text-[#333] px-2 py-1">No matches available</p>
+
+          {/* Search input */}
+          <div className="relative mb-1">
+            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[#333] text-[10px] pointer-events-none">⌕</span>
+            <input
+              type="text"
+              value={matchSearch}
+              onChange={(e) => setMatchSearch(e.target.value)}
+              placeholder="Search match ID…"
+              className="w-full bg-[#0d0d14] border border-[#1e1e2e] text-[#aaa] text-[10px] pl-6 pr-2 py-1.5 focus:outline-none focus:border-[#ff3a3a] transition-colors placeholder-[#2a2a3a]"
+            />
+            {matchSearch && (
+              <button
+                onClick={() => setMatchSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#333] hover:text-[#ff3a3a] text-[10px] transition-colors"
+              >✕</button>
             )}
-            {allMatchIds.map((id) => (
+          </div>
+
+          <div className="flex flex-col border border-[#1e1e2e] bg-[#0d0d14] max-h-44 overflow-y-auto">
+            {visibleMatchIds.length === 0 && (
+              <p className="text-[10px] text-[#333] px-2 py-1">
+                {allMatchIds.length === 0 ? "No matches available" : "No results"}
+              </p>
+            )}
+            {matchSearch && visibleMatchIds.length > 0 && (
+              <p className="text-[9px] text-[#333] px-2 pt-1">
+                {visibleMatchIds.length} of {allMatchIds.length}
+              </p>
+            )}
+            {visibleMatchIds.map((id) => (
               <label key={id} className={checkboxRow} onClick={() => toggleMatch(id)}>
                 <input
                   type="checkbox"
