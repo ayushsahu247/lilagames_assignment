@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback, useMemo } from "react";
 
 const MAP_IMAGE_PATHS = {
   AmbroseValley: import.meta.env.BASE_URL + "minimaps/AmbroseValley_Minimap.png",
@@ -84,7 +84,15 @@ export default function MapCanvas({
   setCurrentTs,
   maxTs,
   staticMode,
+  selectedEventTypes,
 }) {
+  // Derive a filtered event list whenever matchEvents or selectedEventTypes changes
+  const filteredEvents = useMemo(
+    () => (matchEvents && selectedEventTypes)
+      ? matchEvents.filter(e => selectedEventTypes.includes(e.event))
+      : matchEvents,
+    [matchEvents, selectedEventTypes]
+  );
   const canvasRef = useRef(null);
   const mapImageRef = useRef(null);
   const mapLoadedRef = useRef(false);
@@ -123,7 +131,7 @@ export default function MapCanvas({
 
   const drawStatic = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !matchEvents) return;
+    if (!canvas || !filteredEvents) return;
     const ctx = canvas.getContext("2d");
 
     ctx.fillStyle = "#07070d";
@@ -142,7 +150,7 @@ export default function MapCanvas({
     }
 
     // Draw all events at once — position dots at reduced opacity to avoid full saturation
-    for (const e of matchEvents) {
+    for (const e of filteredEvents) {
       const isPositionEvent = e.event === "Position" || e.event === "BotPosition";
       if (isPositionEvent) {
         ctx.globalAlpha = 0.25;
@@ -152,7 +160,7 @@ export default function MapCanvas({
     }
 
     ctx.restore();
-  }, [matchEvents]);
+  }, [filteredEvents]);
 
   // Handle forcing a clean redraw
   const forceClearRef = useRef(false);
@@ -161,7 +169,7 @@ export default function MapCanvas({
 
   const drawFrame = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !matchEvents) return;
+    if (!canvas || !filteredEvents) return;
     const ctx = canvas.getContext("2d");
     const ts = currentTsRef.current;
 
@@ -185,13 +193,13 @@ export default function MapCanvas({
       ctx.globalAlpha = 1.0;
     }
 
-    for (const e of matchEvents) {
+    for (const e of filteredEvents) {
       if (e.ts_ms > ts) break;
       drawEvent(ctx, e);
     }
 
     ctx.restore();
-  }, [matchEvents]);
+  }, [filteredEvents]);
 
   // rAF loop — only in playback mode
   useEffect(() => {
@@ -232,7 +240,7 @@ export default function MapCanvas({
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [matchEvents, maxTs, staticMode, drawFrame, drawStatic, setCurrentTs, setIsPlaying]);
+  }, [filteredEvents, maxTs, staticMode, drawFrame, drawStatic, setCurrentTs, setIsPlaying]);
 
   // Redraw static when events change
   useEffect(() => {

@@ -1,4 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
+
+const ALL_EVENT_TYPES = ["Position", "BotPosition", "Kill", "BotKill", "Killed", "BotKilled", "KilledByStorm", "Loot"];
+export { ALL_EVENT_TYPES };
 import Sidebar from "./components/Sidebar";
 import MapCanvas from "./components/MapCanvas";
 
@@ -15,6 +18,8 @@ export default function App() {
   const [speed, setSpeed] = useState(1);
   const [currentTs, setCurrentTs] = useState(0);
   const [maxTs, setMaxTs] = useState(0);
+
+  const [selectedEventTypes, setSelectedEventTypes] = useState([...ALL_EVENT_TYPES]);
 
   const [trialMode, setTrialMode] = useState(false);
   const [trialEvents, setTrialEvents] = useState(null);
@@ -122,6 +127,8 @@ export default function App() {
           staticMode={staticMode}
           loadTrial={loadTrial}
           trialMode={trialMode}
+          selectedEventTypes={selectedEventTypes}
+          setSelectedEventTypes={setSelectedEventTypes}
         />
 
         {/* Canvas area */}
@@ -144,6 +151,7 @@ export default function App() {
               setCurrentTs={setCurrentTs}
               maxTs={maxTs}
               staticMode={staticMode}
+              selectedEventTypes={selectedEventTypes}
             />
           )}
         </div>

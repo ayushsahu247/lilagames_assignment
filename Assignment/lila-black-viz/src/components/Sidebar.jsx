@@ -1,3 +1,17 @@
+const ALL_EVENT_TYPES = ["Position", "BotPosition", "Kill", "BotKill", "Killed", "BotKilled", "KilledByStorm", "Loot"];
+
+// Visual config per event type (matches legend)
+const EVENT_TYPE_META = {
+  Position:       { label: "Position",      group: "movement",    dot: "rounded-full bg-blue-500" },
+  BotPosition:    { label: "BotPosition",   group: "movement",    dot: "rounded-full border border-gray-500" },
+  Kill:           { label: "Kill",          group: "combat",      symbol: "+", color: "text-green-400" },
+  BotKill:        { label: "BotKill",       group: "combat",      symbol: "+", color: "text-green-400" },
+  Killed:         { label: "Killed",        group: "combat",      symbol: "✕", color: "text-red-400" },
+  BotKilled:      { label: "BotKilled",     group: "combat",      symbol: "✕", color: "text-red-400" },
+  KilledByStorm:  { label: "KilledByStorm", group: "environment", symbol: "✕", color: "text-purple-400" },
+  Loot:           { label: "Loot",          group: "environment", dot: "bg-yellow-400" },
+};
+
 export default function Sidebar({
   data,
   selectedMap, setSelectedMap,
@@ -12,6 +26,8 @@ export default function Sidebar({
   staticMode,
   loadTrial,
   trialMode,
+  selectedEventTypes,
+  setSelectedEventTypes,
 }) {
   const maps = data ? Object.keys(data) : [];
 
@@ -258,52 +274,86 @@ export default function Sidebar({
       {/* Divider */}
       <div className="border-t border-[#1e1e2e]" />
 
-      {/* Legend */}
+      {/* Event Filter — replaces the old static legend */}
       <div>
-        <label className={labelClass}>Legend</label>
+        <div className="flex items-center justify-between mb-2">
+          <label className={labelClass}>Event Filter
+            {selectedEventTypes.length < ALL_EVENT_TYPES.length && (
+              <span className="ml-1 text-[#ff3a3a]">({selectedEventTypes.length}/{ALL_EVENT_TYPES.length})</span>
+            )}
+          </label>
+          <button
+            onClick={() =>
+              selectedEventTypes.length === ALL_EVENT_TYPES.length
+                ? setSelectedEventTypes([])
+                : setSelectedEventTypes([...ALL_EVENT_TYPES])
+            }
+            className="text-[9px] tracking-widest uppercase text-[#ff3a3a] hover:text-[#ff6060] transition-colors"
+          >
+            {selectedEventTypes.length === ALL_EVENT_TYPES.length ? "Clear" : "All"}
+          </button>
+        </div>
 
+        {/* Group: Movement */}
         <p className="text-[9px] tracking-widest text-[#333] uppercase mb-1">Movement</p>
-        <div className="flex flex-col gap-1.5 text-[11px] text-[#555] mb-3">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-blue-500 inline-block flex-shrink-0" />
-            Position <span className="text-[#333] ml-auto">human</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full border border-gray-500 inline-block flex-shrink-0" />
-            BotPosition <span className="text-[#333] ml-auto">bot</span>
-          </div>
+        <div className="flex flex-col mb-3">
+          {["Position", "BotPosition"].map((type) => {
+            const meta = EVENT_TYPE_META[type];
+            const active = selectedEventTypes.includes(type);
+            return (
+              <label key={type} className={checkboxRow} onClick={() =>
+                setSelectedEventTypes(active
+                  ? selectedEventTypes.filter(t => t !== type)
+                  : [...selectedEventTypes, type])
+              }>
+                <input type="checkbox" checked={active} readOnly className="accent-[#ff3a3a] cursor-pointer flex-shrink-0" />
+                <span className={`w-3 h-3 inline-block flex-shrink-0 ${meta.dot}`} />
+                <span className={`${checkLabel} ${active ? "text-[#888]" : ""}`}>{meta.label}</span>
+              </label>
+            );
+          })}
         </div>
 
+        {/* Group: Combat */}
         <p className="text-[9px] tracking-widest text-[#333] uppercase mb-1">Combat</p>
-        <div className="flex flex-col gap-1.5 text-[11px] text-[#555] mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-green-400 font-bold text-base leading-none w-3 text-center flex-shrink-0">+</span>
-            Kill <span className="text-[#333] ml-auto">vs human</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-green-400 font-bold text-base leading-none w-3 text-center flex-shrink-0">+</span>
-            BotKill <span className="text-[#333] ml-auto">vs bot</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-red-400 font-bold text-base leading-none w-3 text-center flex-shrink-0">✕</span>
-            Killed <span className="text-[#333] ml-auto">by human</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-red-400 font-bold text-base leading-none w-3 text-center flex-shrink-0">✕</span>
-            BotKilled <span className="text-[#333] ml-auto">by bot</span>
-          </div>
+        <div className="flex flex-col mb-3">
+          {["Kill", "BotKill", "Killed", "BotKilled"].map((type) => {
+            const meta = EVENT_TYPE_META[type];
+            const active = selectedEventTypes.includes(type);
+            return (
+              <label key={type} className={checkboxRow} onClick={() =>
+                setSelectedEventTypes(active
+                  ? selectedEventTypes.filter(t => t !== type)
+                  : [...selectedEventTypes, type])
+              }>
+                <input type="checkbox" checked={active} readOnly className="accent-[#ff3a3a] cursor-pointer flex-shrink-0" />
+                <span className={`${meta.color} font-bold text-base leading-none w-3 text-center flex-shrink-0`}>{meta.symbol}</span>
+                <span className={`${checkLabel} ${active ? "text-[#888]" : ""}`}>{meta.label}</span>
+              </label>
+            );
+          })}
         </div>
 
+        {/* Group: Environment */}
         <p className="text-[9px] tracking-widest text-[#333] uppercase mb-1">Environment · Items</p>
-        <div className="flex flex-col gap-1.5 text-[11px] text-[#555]">
-          <div className="flex items-center gap-2">
-            <span className="text-purple-400 font-bold text-base leading-none w-3 text-center flex-shrink-0">✕</span>
-            KilledByStorm
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-yellow-400 inline-block flex-shrink-0" />
-            Loot
-          </div>
+        <div className="flex flex-col">
+          {["KilledByStorm", "Loot"].map((type) => {
+            const meta = EVENT_TYPE_META[type];
+            const active = selectedEventTypes.includes(type);
+            return (
+              <label key={type} className={checkboxRow} onClick={() =>
+                setSelectedEventTypes(active
+                  ? selectedEventTypes.filter(t => t !== type)
+                  : [...selectedEventTypes, type])
+              }>
+                <input type="checkbox" checked={active} readOnly className="accent-[#ff3a3a] cursor-pointer flex-shrink-0" />
+                {meta.symbol
+                  ? <span className={`${meta.color} font-bold text-base leading-none w-3 text-center flex-shrink-0`}>{meta.symbol}</span>
+                  : <span className={`w-3 h-3 inline-block flex-shrink-0 ${meta.dot}`} />}
+                <span className={`${checkLabel} ${active ? "text-[#888]" : ""}`}>{meta.label}</span>
+              </label>
+            );
+          })}
         </div>
       </div>
 
