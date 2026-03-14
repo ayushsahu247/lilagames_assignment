@@ -21,7 +21,9 @@ export default function App() {
   const [maxTs, setMaxTs] = useState(0);
 
   const [selectedEventTypes, setSelectedEventTypes] = useState([...ALL_EVENT_TYPES]);
-  const [selectedEvent, setSelectedEvent] = useState(null); // clicked event for inspector
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [heatmapMode, setHeatmapMode] = useState("off");     // off | kills | deaths | traffic
+  const [heatmapIntensity, setHeatmapIntensity] = useState(0.6);
 
   const [trialMode, setTrialMode] = useState(false);
   const [trialEvents, setTrialEvents] = useState(null);
@@ -136,6 +138,10 @@ export default function App() {
           trialMode={trialMode}
           selectedEventTypes={selectedEventTypes}
           setSelectedEventTypes={setSelectedEventTypes}
+          heatmapMode={heatmapMode}
+          setHeatmapMode={setHeatmapMode}
+          heatmapIntensity={heatmapIntensity}
+          setHeatmapIntensity={setHeatmapIntensity}
         />
 
         {/* Canvas area */}
@@ -161,6 +167,8 @@ export default function App() {
                 staticMode={staticMode}
                 selectedEventTypes={selectedEventTypes}
                 onEventClick={setSelectedEvent}
+                heatmapMode={heatmapMode}
+                heatmapIntensity={heatmapIntensity}
               />
               <EventPanel event={selectedEvent} onClose={() => setSelectedEvent(null)} />
             </>

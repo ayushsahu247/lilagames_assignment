@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback, useMemo } from "react";
+import simpleheat from "simpleheat";
 
 const MAP_IMAGE_PATHS = {
   AmbroseValley: import.meta.env.BASE_URL + "minimaps/AmbroseValley_Minimap.png",
@@ -113,6 +114,8 @@ export default function MapCanvas({
   staticMode,
   selectedEventTypes,
   onEventClick,
+  heatmapMode,
+  heatmapIntensity,
 }) {
   // Derive a filtered event list whenever matchEvents or selectedEventTypes changes
   const filteredEvents = useMemo(
@@ -121,6 +124,13 @@ export default function MapCanvas({
       : matchEvents,
     [matchEvents, selectedEventTypes]
   );
+
+  // Which event types feed each heatmap mode
+  const HEATMAP_EVENTS = {
+    kills:   ["Kill", "BotKill"],
+    deaths:  ["Killed", "BotKilled", "KilledByStorm"],
+    traffic: ["Position", "BotPosition"],
+  };
   const canvasRef = useRef(null);
   const mapImageRef = useRef(null);
   const mapLoadedRef = useRef(false);
@@ -155,6 +165,44 @@ export default function MapCanvas({
     img.onerror = () => { mapImageRef.current = null; mapLoadedRef.current = false; };
   }, [selectedMap]);
 
+
+  // --- HEATMAP OVERLAY using simpleheat ---
+
+  const drawHeatmap = useCallback((ctx, eventsPool) => {
+    if (!heatmapMode || heatmapMode === "off") return;
+    const types = HEATMAP_EVENTS[heatmapMode];
+    if (!types) return;
+
+    const heatPts = eventsPool
+      .filter(e => types.includes(e.event))
+      .map(e => [e.pixel_x, e.pixel_y, 1]);
+
+    if (heatPts.length === 0) return;
+
+    // Render onto an offscreen 1024x1024 canvas in map-space, then composite
+    const offscreen = document.createElement("canvas");
+    offscreen.width = 1024;
+    offscreen.height = 1024;
+
+    const heat = simpleheat(offscreen);
+    heat.data(heatPts);
+    // Radius scales with zoom — larger radius at zoom-out, tighter at zoom-in
+    const { scale } = transformRef.current;
+    const radius = Math.max(6, Math.round(20 / scale));
+    heat.radius(radius, radius * 0.6);
+    heat.max(heatmapMode === "traffic" ? 8 : 3);
+    heat.draw();
+
+    // Composite with "screen" blending so it doesn't completely occlude the map
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = heatmapIntensity * 0.85;
+    ctx.drawImage(offscreen, 0, 0, 1024, 1024);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1.0;
+    ctx.restore();
+  }, [heatmapMode, heatmapIntensity]);
+
   // --- STATIC MODE: draw all events once ---
 
   const drawStatic = useCallback(() => {
@@ -177,6 +225,9 @@ export default function MapCanvas({
       ctx.globalAlpha = 1.0;
     }
 
+    // Heatmap layer — drawn in map-space, over the minimap
+    drawHeatmap(ctx, filteredEvents);
+
     // Draw all events at once — position dots at reduced opacity to avoid full saturation
     for (const e of filteredEvents) {
       const isPositionEvent = e.event === "Position" || e.event === "BotPosition";
@@ -188,7 +239,7 @@ export default function MapCanvas({
     }
 
     ctx.restore();
-  }, [filteredEvents]);
+  }, [filteredEvents, drawHeatmap]);
 
   // Handle forcing a clean redraw
   const forceClearRef = useRef(false);
@@ -221,13 +272,17 @@ export default function MapCanvas({
       ctx.globalAlpha = 1.0;
     }
 
+    // Heatmap layer
+    const visiblePool = filteredEvents.filter(ev => ev.ts_ms <= ts);
+    drawHeatmap(ctx, visiblePool);
+
     for (const e of filteredEvents) {
       if (e.ts_ms > ts) break;
       drawEvent(ctx, e);
     }
 
     ctx.restore();
-  }, [filteredEvents]);
+  }, [filteredEvents, drawHeatmap]);
 
   // rAF loop — only in playback mode
   useEffect(() => {
@@ -274,6 +329,13 @@ export default function MapCanvas({
   useEffect(() => {
     if (staticMode) drawStatic();
   }, [staticMode, drawStatic]);
+
+  // Redraw when heatmap mode or intensity changes
+  useEffect(() => {
+    forceClearRef.current = true;
+    if (staticMode) drawStatic();
+    else if (!isPlayingRef.current) drawFrame();
+  }, [heatmapMode, heatmapIntensity, staticMode, drawStatic, drawFrame]);
 
   // Redraw on manual scrub (playback only)
   useEffect(() => {

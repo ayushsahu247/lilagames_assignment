@@ -30,6 +30,10 @@ export default function Sidebar({
   trialMode,
   selectedEventTypes,
   setSelectedEventTypes,
+  heatmapMode,
+  setHeatmapMode,
+  heatmapIntensity,
+  setHeatmapIntensity,
 }) {
   const maps = data ? Object.keys(data) : [];
 
@@ -391,7 +395,59 @@ export default function Sidebar({
         </div>
       </div>
 
+      {/* Heatmap overlay */}
+      {combinedEvents && (
+        <>
+          <div className="border-t border-[#1e1e2e]" />
+          <div>
+            <label className={labelClass}>Heatmap Overlay</label>
+
+            {/* Mode selector */}
+            <div className="grid grid-cols-2 gap-1 mb-3">
+              {[
+                { id: "off",     label: "Off" },
+                { id: "kills",   label: "Kill Zones" },
+                { id: "deaths",  label: "Death Zones" },
+                { id: "traffic", label: "High Traffic" },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => setHeatmapMode(id)}
+                  className={`py-1.5 text-[10px] tracking-widest uppercase border transition-colors ${
+                    heatmapMode === id
+                      ? "border-[#ff3a3a] text-[#ff3a3a] bg-[#ff3a3a]/10"
+                      : "border-[#1e1e2e] text-[#444] hover:border-[#333] hover:text-[#666]"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Intensity slider — only when heatmap is active */}
+            {heatmapMode !== "off" && (
+              <div>
+                <div className="flex justify-between mb-1">
+                  <label className={labelClass}>Intensity</label>
+                  <span className="text-[#444] text-[10px]">{Math.round(heatmapIntensity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0.1}
+                  max={1}
+                  step={0.05}
+                  value={heatmapIntensity}
+                  onChange={(e) => setHeatmapIntensity(Number(e.target.value))}
+                  className="w-full accent-[#ff3a3a] cursor-pointer"
+                />
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       {/* Match stats */}
+
       {combinedEvents && (
         <>
           <div className="border-t border-[#1e1e2e]" />
