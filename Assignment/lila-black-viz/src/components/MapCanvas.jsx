@@ -439,6 +439,23 @@ export default function MapCanvas({
         </div>
       )}
 
+      {/* Controls tutorial — bottom-left */}
+      <div className="absolute bottom-8 left-3 z-20 pointer-events-none flex flex-col gap-1">
+        {[
+          ["scroll",        "zoom in / out"],
+          ["double-click",  "instant zoom toggle"],
+          ["drag",          "pan (when zoomed)"],
+          ["click",         "inspect event"],
+        ].map(([key, desc]) => (
+          <div key={key} className="flex items-center gap-2">
+            <span className="text-[9px] tracking-widest uppercase px-1.5 py-0.5 border border-[#2a2a3a] text-[#555] bg-[#0a0a0f]/80 leading-none">
+              {key}
+            </span>
+            <span className="text-[9px] text-[#333] tracking-wider">{desc}</span>
+          </div>
+        ))}
+      </div>
+
       <canvas
         ref={canvasRef}
         width={1024}
