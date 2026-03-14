@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Sidebar from "./components/Sidebar";
 import MapCanvas from "./components/MapCanvas";
 
@@ -8,8 +8,8 @@ export default function App() {
   const [error, setError] = useState(null);
 
   const [selectedMap, setSelectedMap] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedMatch, setSelectedMatch] = useState("");
+  const [selectedDates, setSelectedDates] = useState([]);   // array
+  const [selectedMatches, setSelectedMatches] = useState([]); // array
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -46,20 +46,37 @@ export default function App() {
       });
   }, []);
 
-  const matchEvents = trialMode
-    ? trialEvents
-    : data && selectedMap && selectedDate && selectedMatch
-      ? data[selectedMap][selectedDate][selectedMatch]
-      : null;
+  // Collect events from ALL selected matches across ALL selected dates
+  const combinedEvents = useMemo(() => {
+    if (trialMode) return trialEvents;
+    if (!data || !selectedMap || selectedDates.length === 0 || selectedMatches.length === 0)
+      return null;
 
+    const all = [];
+    for (const date of selectedDates) {
+      const dateData = data[selectedMap]?.[date];
+      if (!dateData) continue;
+      for (const matchId of selectedMatches) {
+        const events = dateData[matchId];
+        if (events) all.push(...events);
+      }
+    }
+    return all.length > 0 ? all : null;
+  }, [data, selectedMap, selectedDates, selectedMatches, trialMode, trialEvents]);
+
+  // Single match for playback mode
+  const isSingleMatch = !trialMode && selectedMatches.length === 1 && selectedDates.length === 1;
+  const staticMode = !trialMode && (selectedMatches.length > 1 || selectedDates.length > 1);
+
+  // Compute maxTs whenever combinedEvents changes (for single-match playback)
   useEffect(() => {
-    if (matchEvents) {
-      const max = Math.max(...matchEvents.map((e) => e.ts_ms));
+    if (combinedEvents && isSingleMatch) {
+      const max = Math.max(...combinedEvents.map((e) => e.ts_ms));
       setMaxTs(max);
       setCurrentTs(0);
       setIsPlaying(false);
     }
-  }, [selectedMatch]);
+  }, [selectedMatches, selectedDates]);
 
   return (
     <div className="flex h-screen w-screen bg-[#0a0a0f] text-white overflow-hidden font-mono">
@@ -67,7 +84,9 @@ export default function App() {
       <div className="absolute top-0 left-0 right-0 h-10 bg-[#0d0d14] border-b border-[#1e1e2e] flex items-center px-4 z-10">
         <span className="text-[#ff3a3a] font-bold tracking-widest text-xs uppercase mr-2">LILA BLACK</span>
         <span className="text-[#333] mx-2">|</span>
-        <span className="text-[#555] text-xs tracking-widest uppercase">Match Playback Visualizer</span>
+        <span className="text-[#555] text-xs tracking-widest uppercase">
+          {staticMode ? "Match Overview Visualizer" : "Match Playback Visualizer"}
+        </span>
         {loading && (
           <span className="ml-auto text-[#ff3a3a] text-xs animate-pulse">Loading data...</span>
         )}
@@ -81,11 +100,16 @@ export default function App() {
         <Sidebar
           data={data}
           selectedMap={selectedMap}
-          setSelectedMap={(v) => { setSelectedMap(v); setSelectedDate(""); setSelectedMatch(""); setTrialMode(false); }}
-          selectedDate={selectedDate}
-          setSelectedDate={(v) => { setSelectedDate(v); setSelectedMatch(""); }}
-          selectedMatch={selectedMatch}
-          setSelectedMatch={setSelectedMatch}
+          setSelectedMap={(v) => {
+            setSelectedMap(v);
+            setSelectedDates([]);
+            setSelectedMatches([]);
+            setTrialMode(false);
+          }}
+          selectedDates={selectedDates}
+          setSelectedDates={(v) => { setSelectedDates(v); setSelectedMatches([]); }}
+          selectedMatches={selectedMatches}
+          setSelectedMatches={setSelectedMatches}
           isPlaying={isPlaying}
           setIsPlaying={setIsPlaying}
           speed={speed}
@@ -93,14 +117,16 @@ export default function App() {
           currentTs={currentTs}
           setCurrentTs={setCurrentTs}
           maxTs={maxTs}
-          matchEvents={matchEvents}
+          combinedEvents={combinedEvents}
+          isSingleMatch={isSingleMatch}
+          staticMode={staticMode}
           loadTrial={loadTrial}
           trialMode={trialMode}
         />
 
         {/* Canvas area */}
         <div className="flex-1 flex items-center justify-center bg-[#07070d] relative">
-          {!matchEvents ? (
+          {!combinedEvents ? (
             <div className="flex flex-col items-center gap-3 text-[#333]">
               <div className="w-16 h-16 border border-[#1e1e2e] flex items-center justify-center">
                 <span className="text-2xl">◈</span>
@@ -109,7 +135,7 @@ export default function App() {
             </div>
           ) : (
             <MapCanvas
-              matchEvents={matchEvents}
+              matchEvents={combinedEvents}
               selectedMap={trialMode ? trialMap : selectedMap}
               isPlaying={isPlaying}
               setIsPlaying={setIsPlaying}
@@ -117,6 +143,7 @@ export default function App() {
               currentTs={currentTs}
               setCurrentTs={setCurrentTs}
               maxTs={maxTs}
+              staticMode={staticMode}
             />
           )}
         </div>
