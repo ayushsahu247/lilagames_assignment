@@ -4,6 +4,7 @@ const ALL_EVENT_TYPES = ["Position", "BotPosition", "Kill", "BotKill", "Killed",
 export { ALL_EVENT_TYPES };
 import Sidebar from "./components/Sidebar";
 import MapCanvas from "./components/MapCanvas";
+import EventPanel from "./components/EventPanel";
 
 export default function App() {
   const [data, setData] = useState(null);
@@ -20,6 +21,7 @@ export default function App() {
   const [maxTs, setMaxTs] = useState(0);
 
   const [selectedEventTypes, setSelectedEventTypes] = useState([...ALL_EVENT_TYPES]);
+  const [selectedEvent, setSelectedEvent] = useState(null); // clicked event for inspector
 
   const [trialMode, setTrialMode] = useState(false);
   const [trialEvents, setTrialEvents] = useState(null);
@@ -52,6 +54,7 @@ export default function App() {
   }, []);
 
   // Collect events from ALL selected matches across ALL selected dates
+  // Enrich each event with _date and _matchId for the inspector panel
   const combinedEvents = useMemo(() => {
     if (trialMode) return trialEvents;
     if (!data || !selectedMap || selectedDates.length === 0 || selectedMatches.length === 0)
@@ -63,7 +66,11 @@ export default function App() {
       if (!dateData) continue;
       for (const matchId of selectedMatches) {
         const events = dateData[matchId];
-        if (events) all.push(...events);
+        if (events) {
+          for (const ev of events) {
+            all.push({ ...ev, _date: date, _matchId: matchId });
+          }
+        }
       }
     }
     return all.length > 0 ? all : null;
@@ -141,18 +148,22 @@ export default function App() {
               <p className="text-xs tracking-widest uppercase">Select a match to begin</p>
             </div>
           ) : (
-            <MapCanvas
-              matchEvents={combinedEvents}
-              selectedMap={trialMode ? trialMap : selectedMap}
-              isPlaying={isPlaying}
-              setIsPlaying={setIsPlaying}
-              speed={speed}
-              currentTs={currentTs}
-              setCurrentTs={setCurrentTs}
-              maxTs={maxTs}
-              staticMode={staticMode}
-              selectedEventTypes={selectedEventTypes}
-            />
+            <>
+              <MapCanvas
+                matchEvents={combinedEvents}
+                selectedMap={trialMode ? trialMap : selectedMap}
+                isPlaying={isPlaying}
+                setIsPlaying={setIsPlaying}
+                speed={speed}
+                currentTs={currentTs}
+                setCurrentTs={setCurrentTs}
+                maxTs={maxTs}
+                staticMode={staticMode}
+                selectedEventTypes={selectedEventTypes}
+                onEventClick={setSelectedEvent}
+              />
+              <EventPanel event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+            </>
           )}
         </div>
       </div>

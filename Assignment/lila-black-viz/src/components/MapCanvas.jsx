@@ -112,6 +112,7 @@ export default function MapCanvas({
   maxTs,
   staticMode,
   selectedEventTypes,
+  onEventClick,
 }) {
   // Derive a filtered event list whenever matchEvents or selectedEventTypes changes
   const filteredEvents = useMemo(
@@ -348,6 +349,46 @@ export default function MapCanvas({
     }
   };
 
+  // --- Click to inspect event ---
+  const clickTimerRef = useRef(null);
+  const handleClick = (e) => {
+    // Debounce: ignore the first click of a double-click (wait 250ms)
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    clickTimerRef.current = setTimeout(() => {
+      if (!filteredEvents || !onEventClick) return;
+
+      const pt = getCanvasPoint(e);
+      const { scale, x: tx, y: ty } = transformRef.current;
+
+      // Convert to map space
+      const mapX = (pt.x - tx) / scale;
+      const mapY = (pt.y - ty) / scale;
+
+      // Hit radius: 12 canvas pixels → map space
+      const hitRadius = 12 / scale;
+
+      // Only search within visible events (respect playback ts in playback mode)
+      const pool = staticMode
+        ? filteredEvents
+        : filteredEvents.filter(ev => ev.ts_ms <= currentTsRef.current);
+
+      let best = null;
+      let bestDist = Infinity;
+      for (const ev of pool) {
+        const dx = ev.pixel_x - mapX;
+        const dy = ev.pixel_y - mapY;
+        const d = dx * dx + dy * dy;
+        if (d < bestDist) { bestDist = d; best = ev; }
+      }
+
+      if (best && Math.sqrt(bestDist) <= hitRadius) {
+        onEventClick(best);
+      } else {
+        onEventClick(null); // click on empty space clears panel
+      }
+    }, 250);
+  };
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -404,6 +445,7 @@ export default function MapCanvas({
         height={1024}
         className="block"
         style={{ maxHeight: "calc(100vh - 40px)", width: "auto" }}
+        onClick={handleClick}
         onDoubleClick={handleDoubleClick}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
