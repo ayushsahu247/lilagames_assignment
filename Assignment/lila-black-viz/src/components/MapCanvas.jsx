@@ -28,6 +28,29 @@ function drawX(ctx, x, y, size, color) {
   ctx.stroke();
 }
 
+// ◇ diamond outline — used for BotKill
+function drawDiamond(ctx, x, y, size, color) {
+  const h = size / 2;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x, y - h);
+  ctx.lineTo(x + h, y);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x - h, y);
+  ctx.closePath();
+  ctx.stroke();
+}
+
+// ○ circle outline — used for BotKilled
+function drawCircleOutline(ctx, x, y, r, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
 function drawEvent(ctx, e) {
   const { pixel_x: ex, pixel_y: ey, event } = e;
   switch (event) {
@@ -45,12 +68,16 @@ function drawEvent(ctx, e) {
       ctx.stroke();
       break;
     case "Kill":
+      drawCross(ctx, ex, ey, 6, "#22c55e");   // green +
+      break;
     case "BotKill":
-      drawCross(ctx, ex, ey, 6, "#22c55e");
+      drawDiamond(ctx, ex, ey, 7, "#22c55e"); // green ◇
       break;
     case "Killed":
+      drawX(ctx, ex, ey, 8, "#ef4444");       // red ✕
+      break;
     case "BotKilled":
-      drawX(ctx, ex, ey, 8, "#ef4444");
+      drawCircleOutline(ctx, ex, ey, 4, "#ef4444"); // red ○
       break;
     case "KilledByStorm":
       drawX(ctx, ex, ey, 10, "#a855f7");

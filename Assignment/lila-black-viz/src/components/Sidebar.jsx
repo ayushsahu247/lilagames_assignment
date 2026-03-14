@@ -5,9 +5,9 @@ const EVENT_TYPE_META = {
   Position:       { label: "Position",      group: "movement",    dot: "rounded-full bg-blue-500" },
   BotPosition:    { label: "BotPosition",   group: "movement",    dot: "rounded-full border border-gray-500" },
   Kill:           { label: "Kill",          group: "combat",      symbol: "+", color: "text-green-400" },
-  BotKill:        { label: "BotKill",       group: "combat",      symbol: "+", color: "text-green-400" },
+  BotKill:        { label: "BotKill",       group: "combat",      symbol: "◇", color: "text-green-400" },
   Killed:         { label: "Killed",        group: "combat",      symbol: "✕", color: "text-red-400" },
-  BotKilled:      { label: "BotKilled",     group: "combat",      symbol: "✕", color: "text-red-400" },
+  BotKilled:      { label: "BotKilled",     group: "combat",      symbol: "○", color: "text-red-400" },
   KilledByStorm:  { label: "KilledByStorm", group: "environment", symbol: "✕", color: "text-purple-400" },
   Loot:           { label: "Loot",          group: "environment", dot: "bg-yellow-400" },
 };
